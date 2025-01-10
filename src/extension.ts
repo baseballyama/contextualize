@@ -1,18 +1,21 @@
 import * as vscode from "vscode";
+import { collectFiles } from "./context/folder-traverse";
 
 export function activate(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
     "contextualize.generateLLMContext",
-    (uri: vscode.Uri) => {
-      console.log(uri.fsPath);
-      // 選択されたディレクトリのパスを取得
-      const directoryPath = uri.fsPath;
+    async (uri: vscode.Uri | undefined) => {
+      if (uri === undefined) {
+        vscode.window.showErrorMessage("No directory selected.");
+        return;
+      }
 
-      vscode.window.showInformationMessage(
-        `Selected Directory: ${directoryPath}`
-      );
-
-      // カスタム処理をここに追加
+      const content = collectFiles(uri.fsPath);
+      const document = await vscode.workspace.openTextDocument({
+        content,
+        language: "plaintext", // プレーンテキストとして表示
+      });
+      await vscode.window.showTextDocument(document);
     }
   );
 
