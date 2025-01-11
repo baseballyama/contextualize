@@ -1,65 +1,87 @@
-# contextualize
+# Contextualize: Generate LLM Context
 
-🚀 Seamlessly generate and manage contextual setups for ChatGPT in VSCode.
+This extension generates a consolidated document that includes a **file tree, source code, and (TypeScript type information)** for a selected directory.  
+It's particularly useful for scenarios like providing code context to Large Language Models (LLMs) or gaining an overview of project dependencies.
 
 ## Features
 
-`contextualize` is a VSCode extension designed to enhance your development workflow by allowing you to quickly generate context-sensitive setups for ChatGPT. It provides intuitive options directly in the file explorer for creating, managing, and using contextual prompts.
+1. **Recursive Directory Traversal**  
+   Scans all files within the selected directory and subdirectories, displaying their hierarchy as a tree structure along with the file contents.
 
-### Key Features:
+2. **TypeScript Type Information**  
+   For TypeScript files, comments with symbol type information are automatically added to `import` statements.  
+   Example:
 
-- **Folder-Specific Contexts**: Right-click on a folder to generate contextual prompts tailored to its contents.
-- **Customizable Prompts**: Modify generated prompts to better fit your use case.
-- **Streamlined Workflow**: Quickly access context generation tools without leaving your editor.
+   ```ts
+   /*
+    * Default Import: something => SomeType
+    * Named Imports:
+    *   - foo => FooType
+    */
+   import something, { foo } from "some-module";
+   ```
+
+   This makes it easy to understand the types being imported and provides valuable context for LLMs or code reviews.
+
+---
 
 ## Installation
 
-1. Open VSCode.
-2. Go to the Extensions view by clicking on the Extensions icon in the Activity Bar on the side of the window or by pressing `Ctrl+Shift+X`.
-3. Search for "contextualize".
-4. Click **Install**.
+1. Search for `contextualize` in the Visual Studio Code Extensions panel and install it.
+2. Restart Visual Studio Code to activate the extension.
+
+---
 
 ## Usage
 
-### Right-Click Context Menu
+1. In the VSCode Explorer, **right-click the directory** you want to summarize.
+2. From the context menu, select **`Generate LLM Context`**.
+3. Once executed, the extension will recursively scan all files in the selected directory and open a document in the editor containing:
+   1. A directory tree structure.
+   2. File contents (TypeScript files will have type information comments added to `import` statements).
 
-1. Open the VSCode file explorer.
-2. **Right-click** on a folder or file.
-3. Select `Generate LLM Context` from the context menu.
-4. A notification will display the selected path, and a context setup will be generated.
+### Example Output
 
-### Command Palette
+```
+#File Tree
+|- src
+    |- index.ts
+    |- utils
+        |- helper.ts
 
-You can also use the Command Palette to run the extension’s commands:
+//#region src/index.ts
+(file contents)
+//#endregion
 
-1. Press `Ctrl+Shift+P` or `Cmd+Shift+P` to open the Command Palette.
-2. Type `Generate LLM Context`.
-3. Select the command and follow the instructions.
+//#region src/utils/helper.ts
+(file contents)
+//#endregion
+```
 
-## Extension Settings
+---
 
-This extension does not currently have customizable settings. Future updates will include:
+## Recommended Use Cases
 
-- Default prompt templates.
-- Integration with external tools or APIs.
+- **Providing Context to LLMs**  
+  Generate a single document summarizing all files, making it easy to provide code context to LLMs for tasks like code reviews or AI-assisted development.
+- **Understanding Type Information**  
+  Type annotations for TypeScript `import` statements make it easier to review dependencies and their types.
 
-## Known Issues
+---
 
-- The command might not appear in the context menu if the extension is not activated. Ensure the folder or file is selected properly.
-- For files larger than a certain size, generation may take longer than expected.
+## Notes
 
-## Release Notes
+- Files other than TypeScript (e.g., `.js`, `.json`, `.md`) are included as-is, without additional comments or transformations.
+- For large projects with deep directory structures or many files, processing and document generation may take some time.
+- Please ensure your system has sufficient resources when using this extension on large-scale projects.
 
-### 0.0.1
-
-- Initial release.
-- Added folder-specific context generation.
-- Included right-click menu integration.
-
-## Contributing
-
-We welcome contributions! Feel free to open an issue or submit a pull request on [GitHub](https://github.com/your-repo/contextualize).
+---
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This extension is released under the MIT License. See the [LICENSE](LICENSE) file for more details.
+
+---
+
+We look forward to your feedback and suggestions!  
+Please report issues or contribute via the [GitHub Repository](https://github.com/username/repository).
