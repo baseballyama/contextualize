@@ -27,7 +27,8 @@ It's particularly useful for scenarios like providing code context to Large Lang
 
 ## Installation
 
-1. Search for `contextualize` in the Visual Studio Code Extensions panel and install it.
+1. Search for **`Contextualize`** in the Visual Studio Code Extensions panel and install it,  
+   or visit [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=baseballyama.contextualize) to download and install it directly.
 2. Restart Visual Studio Code to activate the extension.
 
 ---
