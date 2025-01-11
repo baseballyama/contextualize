@@ -1,10 +1,41 @@
-import * as ts from "typescript";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import type ts from "typescript";
 
-/**
- * 指定したファイルパスから上位階層を遡り、tsconfig.json を探す
- */
+type TsApi = typeof ts;
+type Program = ReturnType<typeof ts.createProgram>;
+type TypeChecker = ReturnType<Program["getTypeChecker"]>;
+type TransformerFactory = ts.TransformerFactory<ts.SourceFile>;
+
+// Find the project root by searching for package.json upwards
+function findProjectRoot(startDir: string): string {
+  let currentDir = path.resolve(startDir);
+  while (true) {
+    if (fs.existsSync(path.join(currentDir, "package.json"))) {
+      return currentDir;
+    }
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      return startDir;
+    }
+    currentDir = parentDir;
+  }
+}
+
+// Try to load the user's local TypeScript; return null if not found
+function tryLoadUserTypescript(baseDir: string): TsApi | null {
+  const projectRoot = findProjectRoot(baseDir);
+  const candidatePaths = [baseDir, projectRoot];
+  for (const p of candidatePaths) {
+    try {
+      const tsPath = require.resolve("typescript", { paths: [p] });
+      return require(tsPath);
+    } catch {}
+  }
+  return null;
+}
+
+// Find tsconfig.json by traversing upwards
 function findTsConfigPath(startFilePath: string): string | null {
   let currentDir = path.dirname(startFilePath);
   while (true) {
@@ -21,13 +52,8 @@ function findTsConfigPath(startFilePath: string): string | null {
   return null;
 }
 
-/**
- * tsconfig.json を読み込み、Program と TypeChecker を作成
- */
-function createProgramAndChecker(tsconfigPath: string): {
-  program: ts.Program;
-  checker: ts.TypeChecker;
-} {
+// Create a Program and TypeChecker from tsconfig.json
+function createProgramAndChecker(tsconfigPath: string, ts: TsApi) {
   const configFile = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
   const config = ts.parseJsonConfigFileContent(
     configFile.config,
@@ -39,76 +65,64 @@ function createProgramAndChecker(tsconfigPath: string): {
   return { program, checker };
 }
 
-/**
- * 指定した filePath のソースコードに対し、
- * Import 文に「型情報をコメントで補記」するトランスフォームを行い、
- * 変換後のコード文字列を返す
- */
+// Transform import declarations by adding type info comments
 function transformImportCommentsInFile(
   baseDir: string,
   filePath: string,
-  program: ts.Program,
-  checker: ts.TypeChecker
+  ts: TsApi,
+  program: Program,
+  checker: TypeChecker
 ): string {
   const sourceFile = program.getSourceFile(filePath);
   if (!sourceFile) {
     return fs.readFileSync(path.join(baseDir, filePath), "utf-8");
   }
-
-  const transformer = createImportTypeCommentTransformer(checker);
+  const transformer = createImportTypeCommentTransformer(ts, checker);
   const result = ts.transform(sourceFile, [transformer]);
-  const transformedSourceFile = result.transformed[0] as ts.SourceFile;
-
+  const transformedSourceFile = result.transformed[0] as typeof sourceFile;
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
   const newCode = printer.printFile(transformedSourceFile);
-
   result.dispose();
   return newCode;
 }
 
-/**
- * マルチラインコメントを付与するトランスフォーマー
- */
 function createImportTypeCommentTransformer(
-  checker: ts.TypeChecker
-): ts.TransformerFactory<ts.SourceFile> {
-  return (context: ts.TransformationContext) => {
+  ts: TsApi,
+  checker: TypeChecker
+): TransformerFactory {
+  return (context) => {
     const visit: ts.Visitor = (node) => {
       if (ts.isImportDeclaration(node)) {
-        const commentText = getFormattedImportComment(node, checker);
+        const commentText = getFormattedImportComment(ts, node, checker);
         if (commentText) {
-          // MultiLineCommentTrivia -> /* ... */
-          // commentText は中身のみ渡す
           ts.addSyntheticLeadingComment(
             node,
             ts.SyntaxKind.MultiLineCommentTrivia,
             commentText,
-            /* hasTrailingNewLine */ true
+            true
           );
         }
         return node;
       }
       return ts.visitEachChild(node, visit, context);
     };
-    return (sf: ts.SourceFile) => ts.visitNode(sf, visit) as ts.SourceFile;
+    return (sf) => ts.visitNode(sf, visit) as ts.SourceFile;
   };
 }
 
-/**
- * ImportDeclaration からコメント用テキストを生成
- */
 function getFormattedImportComment(
+  ts: TsApi,
   importDecl: ts.ImportDeclaration,
-  checker: ts.TypeChecker
+  checker: TypeChecker
 ): string | null {
   if (!importDecl.importClause) {
     return null;
   }
-  const importClause = importDecl.importClause;
+  const { importClause } = importDecl;
 
   let defaultImportInfo: string | null = null;
   if (importClause.name) {
-    defaultImportInfo = getIdentifierTypeString(importClause.name, checker);
+    defaultImportInfo = getIdentifierTypeString(ts, importClause.name, checker);
   }
 
   let namedImportsInfo: Array<{ name: string; type: string }> = [];
@@ -117,22 +131,22 @@ function getFormattedImportComment(
   const namedBindings = importClause.namedBindings;
   if (namedBindings) {
     if (ts.isNamedImports(namedBindings)) {
-      namedImportsInfo = namedBindings.elements.map((element) => ({
-        name: element.name.text,
-        type: getIdentifierTypeString(element.name, checker),
+      namedImportsInfo = namedBindings.elements.map((el) => ({
+        name: el.name.text,
+        type: getIdentifierTypeString(ts, el.name, checker),
       }));
     } else if (ts.isNamespaceImport(namedBindings)) {
       namespaceImportsInfo.push({
         name: namedBindings.name.text,
-        type: getIdentifierTypeString(namedBindings.name, checker),
+        type: getIdentifierTypeString(ts, namedBindings.name, checker),
       });
     }
   }
 
   if (
     !defaultImportInfo &&
-    namedImportsInfo.length === 0 &&
-    namespaceImportsInfo.length === 0
+    !namedImportsInfo.length &&
+    !namespaceImportsInfo.length
   ) {
     return null;
   }
@@ -146,26 +160,22 @@ function getFormattedImportComment(
   });
 }
 
-/**
- * シンボルから型情報を取得するヘルパー
- */
+// Get type string for a symbol
 function getIdentifierTypeString(
+  ts: TsApi,
   ident: ts.Identifier,
-  checker: ts.TypeChecker
+  checker: TypeChecker
 ): string {
   let symbol = checker.getSymbolAtLocation(ident);
   if (!symbol) {
     return "(no symbol)";
   }
-
   if (symbol.flags & ts.SymbolFlags.Alias) {
     symbol = checker.getAliasedSymbol(symbol);
   }
-
   if (!symbol.valueDeclaration) {
     return "(no valueDeclaration)";
   }
-
   const type = checker.getTypeOfSymbolAtLocation(
     symbol,
     symbol.valueDeclaration
@@ -173,17 +183,13 @@ function getIdentifierTypeString(
   return checker.typeToString(type);
 }
 
-/**
- * コメント文字列を組み立てる
- * ここで改行をしっかり入れて見やすく調整する
- */
+// Format final comment text
 function formatCommentText(info: {
   defaultImport: { name: string; type: string } | null;
   namedImports: Array<{ name: string; type: string }>;
   namespaceImports: Array<{ name: string; type: string }>;
 }): string {
   const lines: string[] = [];
-
   if (info.defaultImport) {
     lines.push(
       `Default Import: ${info.defaultImport.name} => ${info.defaultImport.type}`
@@ -201,34 +207,29 @@ function formatCommentText(info: {
       lines.push(`  - ${named.name} => ${named.type}`);
     }
   }
-
-  // ここで先頭・末尾を含め、整形
-  // 実際にソースコードに出力されるのは: /* ... */ （両端は TS Compiler が付加）
-  // なので、中身だけ下記のように
-
-  // 例:
-  //  * Namespace Imports:
-  //  *   - vscode => ...
-  //  *
-  // 最後に空行を入れることで区切りがきれいになる
-  const content = lines.map((l) => ` * ${l}`).join("\n");
-  return `\n${content}\n `;
+  return `\n${lines.map((l) => ` * ${l}`).join("\n")}\n `;
 }
 
+// Main loader function
 export function useTypescriptLoader(baseDir: string) {
+  const ts = tryLoadUserTypescript(baseDir);
+  if (!ts) {
+    return (someFilePath: string) => {
+      return fs.readFileSync(path.join(baseDir, someFilePath), "utf-8");
+    };
+  }
   const tsconfigPath = findTsConfigPath(baseDir);
   if (!tsconfigPath) {
     return (someFilePath: string) => {
       return fs.readFileSync(path.join(baseDir, someFilePath), "utf-8");
     };
   }
-
-  const { program, checker } = createProgramAndChecker(tsconfigPath);
-
+  const { program, checker } = createProgramAndChecker(tsconfigPath, ts);
   return (someFilePath: string) => {
     return transformImportCommentsInFile(
       baseDir,
       someFilePath,
+      ts,
       program,
       checker
     );

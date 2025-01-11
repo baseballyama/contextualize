@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { useFileLoader } from "./language";
 
+// Recursively list files
 function listFilesRecursive(dir: string): string[] {
   let results: string[] = [];
   const list = fs.readdirSync(dir);
@@ -17,14 +18,12 @@ function listFilesRecursive(dir: string): string[] {
   return results;
 }
 
+// Build and format a tree structure
 function formatFileTree(files: string[], basePath: string): string {
   const tree: { [key: string]: any } = {};
-
-  // ファイルパスをツリー構造に分割
   files.forEach((filePath) => {
-    const relativePath = path.relative(basePath, filePath); // 基準パスからの相対パス
+    const relativePath = path.relative(basePath, filePath);
     const parts = relativePath.split(path.sep);
-
     let current = tree;
     parts.forEach((part, index) => {
       if (!current[part]) {
@@ -33,8 +32,6 @@ function formatFileTree(files: string[], basePath: string): string {
       current = current[part];
     });
   });
-
-  // ツリーを文字列に整形
   function renderTree(tree: { [key: string]: any }, indent = ""): string {
     return Object.keys(tree)
       .map((key) => {
@@ -46,10 +43,10 @@ function formatFileTree(files: string[], basePath: string): string {
       })
       .join("\n");
   }
-
   return renderTree(tree);
 }
 
+// Generate a file tree and file contents
 export function collectFiles(directoryPath: string): string {
   const allFiles = listFilesRecursive(directoryPath);
   const fileTree = formatFileTree(allFiles, directoryPath);
