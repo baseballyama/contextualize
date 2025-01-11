@@ -1,25 +1,17 @@
 import * as vscode from "vscode";
-import { collectFiles } from "./context/folder-traverse";
+import { onActivate as configOnActivate } from "./config/index";
+import { activate as generateLLMContextActivate } from "./command/generate-llm-context";
+import { activate as generatePromptActivate } from "./command/generate-prompt";
+import { activate as applyConflictMarkerStyleActivate } from "./command/apply-conflict-marker-style";
+
+const onActivates = [configOnActivate];
 
 export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand(
-    "contextualize.generateLLMContext",
-    async (uri: vscode.Uri | undefined) => {
-      if (uri === undefined) {
-        vscode.window.showErrorMessage("No directory selected.");
-        return;
-      }
+  context.subscriptions.push(generateLLMContextActivate());
+  context.subscriptions.push(generatePromptActivate());
+  context.subscriptions.push(applyConflictMarkerStyleActivate());
 
-      const content = collectFiles(uri.fsPath);
-      const document = await vscode.workspace.openTextDocument({
-        content,
-        language: "plaintext", // プレーンテキストとして表示
-      });
-      await vscode.window.showTextDocument(document);
-    }
-  );
-
-  context.subscriptions.push(disposable);
+  onActivates.forEach((onActivate) => onActivate());
 }
 
 export function deactivate() {}

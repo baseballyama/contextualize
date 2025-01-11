@@ -190,6 +190,7 @@ function formatCommentText(info: {
   namespaceImports: Array<{ name: string; type: string }>;
 }): string {
   const lines: string[] = [];
+  lines.push("Type information:");
   if (info.defaultImport) {
     lines.push(
       `Default Import: ${info.defaultImport.name} => ${info.defaultImport.type}`

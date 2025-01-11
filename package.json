@@ -18,17 +18,65 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "contextualize Settings",
+      "properties": {
+        "contextualize.prompts": {
+          "type": "array",
+          "default": [
+            {
+              "title": "refactoring",
+              "prompt": "## Refined Prompt for Code Modification\n\nUse the following instructions to modify code according to user requirements and produce output in a detailed conflict marker style. Each conflict marker must cover **only the smallest necessary portion** of code to reflect the change. You may use multiple conflict markers in the same file if needed. **All output** must be contained in **one code block**. Also, do **not** include any comments starting with \\`\"Type information:\"\\` in either the original or updated sections of the conflict markers.\n\n---\n\n### Where to Place User Instructions and Code\n\n1. **User Instructions**  \n   - Provide a dedicated section (e.g., **User Instruction**) that clearly states what needs to be changed in the code.\n   - If the instructions are ambiguous, note which parts need clarification.\n\n2. **Original Code**  \n   - If the original code is short, you can place it in a section labeled **Original Code** within the prompt.  \n   - If it is very long, consider using collapsible markdown sections or referencing an external file.\n\n---\n\n### Steps for the Code Modification\n\n1. **Parse the Instructions**  \n   - Identify exactly what modifications are requested (e.g., renaming functions, changing import paths, etc.).\n\n2. **Locate the Differences**  \n   - Identify the **smallest** logical unit (a line or part of a line) that must be changed.  \n   - Exclude any comment lines beginning with \\`\"Type information:\"\\` from both the original and updated code snippets.\n\n3. **Update the Code**  \n   - Apply the requested changes.  \n   - Preserve the original code for reference in the conflict markers.\n\n4. **Generate the Output**  \n   - Wrap **all** conflict markers in **one** markdown code block.  \n   - For each file changed, display:\n     \\`\\`\\`\n     filename\n     <<<<<<< ORIGINAL\n     [Smallest necessary original code snippet]\n     =======\n     [Smallest necessary updated code snippet]\n     >>>>>>> UPDATED\n     \\`\\`\\`\n   - If no changes are needed, still output one conflict marker pair showing the original and updated code as identical.\n\n---\n\n### Output Format Requirements\n\n- **Multiple Conflict Markers**: Split changes into multiple markers if that helps keep them minimal.  \n- **Single Code Block**: Output **must** be enclosed in a single set of triple backticks.  \n- **Exclude \"Type information:\" Comments**: These comments do not appear in the conflict markers at all.  \n- **Ambiguity Handling**: If instructions are unclear, indicate what is ambiguous in a note.  \n- **No Changes Needed**: When the user’s instructions do not require any alterations, show a marker pair with identical code.\n\n---\n\n### User Instruction\n> Please refactor the code! Do not make a compile error and type error.\n\n### Original Code\n{code}\n\n#### Output\n\\`\\`\\`\nexample.js\n<<<<<<< ORIGINAL\nfunction add(a, b) {\n=======\nconst sum = (a, b) => {\n>>>>>>> UPDATED\nexample.js\n<<<<<<< ORIGINAL\n  return a + b;\n=======\n  a + b;\n>>>>>>> UPDATED\n\\`\\`\\`\n\n> **Note**: The comment starting with \\`\"Type information:\"\\` is omitted in both the ORIGINAL and UPDATED blocks. Each marker encloses only the minimal changed code.\n\n---\n\n## Key Points\n\n1. **Minimal Conflict Markers**: Each marker should capture only the code that changed, not entire large blocks.  \n2. **Single Code Block**: The final result (including all conflict markers) is wrapped in one code block.  \n3. **Handling Long Code**: Use collapsible sections or references to external files if the original code is extensive.  \n4. **Omitting Non-Code Comments**: Skip lines that begin with \\`\"Type information:\"\\` in both versions.  \n5. **Flexibility**: Use multiple markers per file for finer-grained changes or to handle multiple modifications.\n"
+            }
+          ],
+          "description": "A collection of prompt templates. Each template must include {code}, where {code} will be replaced with the entire code from the selected directory."
+        },
+        "contextualize.addTypeScriptTypes": {
+          "type": "boolean",
+          "default": true,
+          "description": "A setting for adding type information via comments to types, values, and functions imported in TypeScript."
+        }
+      }
+    },
+    "submenus": [
+      {
+        "id": "contextualize.folderMenu",
+        "label": "Contextualize"
+      }
+    ],
     "menus": {
       "explorer/context": [
         {
-          "when": "explorerResourceIsFolder",
+          "submenu": "contextualize.folderMenu",
+          "group": "@contextualize",
+          "when": "explorerResourceIsFolder"
+        }
+      ],
+      "contextualize.folderMenu": [
+        {
           "command": "contextualize.generateLLMContext",
-          "group": "1_contextualize"
+          "group": "1_actions"
+        },
+        {
+          "command": "contextualize.generatePrompt",
+          "group": "1_actions"
+        },
+        {
+          "command": "contextualize.apply",
+          "group": "2_operations"
         }
       ],
       "commandPalette": [
         {
           "command": "contextualize.generateLLMContext",
+          "when": "false"
+        },
+        {
+          "command": "contextualize.generatePrompt",
+          "when": "false"
+        },
+        {
+          "command": "contextualize.apply",
           "when": "false"
         }
       ]
@@ -37,6 +85,14 @@
       {
         "command": "contextualize.generateLLMContext",
         "title": "Generate LLM Context"
+      },
+      {
+        "command": "contextualize.generatePrompt",
+        "title": "Generate LLM Prompt"
+      },
+      {
+        "command": "contextualize.apply",
+        "title": "Apply LLM Output (Conflict Marker Style)"
       }
     ]
   },

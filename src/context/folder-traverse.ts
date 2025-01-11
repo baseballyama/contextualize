@@ -52,5 +52,5 @@ export function collectFiles(directoryPath: string): string {
   const fileTree = formatFileTree(allFiles, directoryPath);
   const loadFile = useFileLoader(directoryPath);
   const fileTexts = allFiles.map(loadFile).join("\n");
-  return `#File Tree\n${fileTree}\n\n${fileTexts}`;
+  return `#### File Tree\n${fileTree}\n\n${fileTexts}`;
 }
