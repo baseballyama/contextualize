@@ -28,7 +28,10 @@ export function activate(withDependencies: boolean) {
         const treeString = renderFileTree(fileTree);
         const fileContents = renderFileTreeContents(fileTree, basePath);
         await postProcess(
-          "# File Tree\n" + treeString + "\n\n# SourceCode\n" + fileContents
+          "# File Tree\n" +
+            treeString +
+            "\n\n# SourceCode\n" +
+            fileContents.join("\n")
         );
       } catch (error) {
         vscode.window.showErrorMessage(
