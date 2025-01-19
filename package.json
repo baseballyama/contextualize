@@ -40,17 +40,30 @@
           "submenu": "contextualize.folderMenu",
           "group": "@contextualize",
           "when": "explorerResourceIsFolder || resourceFilename"
+        },
+        {
+          "command": "contextualize.generateLLMContextWithDependencies",
+          "group": "@contextualize",
+          "when": "explorerResourceIsFolder || resourceFilename"
         }
       ],
       "contextualize.folderMenu": [
         {
           "command": "contextualize.generateLLMContext",
           "group": "1_actions"
+        },
+        {
+          "command": "contextualize.generateLLMContextWithDependencies",
+          "group": "1_actions"
         }
       ],
       "commandPalette": [
         {
           "command": "contextualize.generateLLMContext",
+          "when": "false"
+        },
+        {
+          "command": "contextualize.generateLLMContextWithDependencies",
           "when": "false"
         }
       ]
@@ -59,6 +72,10 @@
       {
         "command": "contextualize.generateLLMContext",
         "title": "Generate LLM Context"
+      },
+      {
+        "command": "contextualize.generateLLMContextWithDependencies",
+        "title": "Generate LLM Context with Dependencies"
       }
     ]
   },

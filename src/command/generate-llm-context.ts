@@ -11,18 +11,25 @@ async function postProcess(content: string) {
   await vscode.window.showTextDocument(document);
 }
 
-export function activate() {
+export function activate(withDependencies: boolean) {
   return vscode.commands.registerCommand(
-    "contextualize.generateLLMContext",
+    "contextualize.generateLLMContext" +
+      (withDependencies ? "WithDependencies" : ""),
     async (_: vscode.Uri | undefined, selectedUris: vscode.Uri[]) => {
       try {
         const fsPaths = selectedUris.map((uri) => uri.fsPath);
         const gitignorePaths = findGitignoresForPaths(fsPaths);
         const isGitIgnored = getIsGitIgnored(gitignorePaths);
-        const { fileTree, basePath } = buildFileTree(fsPaths, isGitIgnored);
+        const { fileTree, basePath } = await buildFileTree(
+          fsPaths,
+          isGitIgnored,
+          withDependencies
+        );
         const treeString = renderFileTree(fileTree);
         const fileContents = renderFileTreeContents(fileTree, basePath);
-        await postProcess(treeString + "\n\n" + fileContents);
+        await postProcess(
+          "# File Tree\n" + treeString + "\n\n# SourceCode\n" + fileContents
+        );
       } catch (error) {
         vscode.window.showErrorMessage(
           "Failed to generate LLM context: " + error

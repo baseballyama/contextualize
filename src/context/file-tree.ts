@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as nodePath from "node:path";
+import { resolveAllImportsInFile } from "./resolve";
 
 type File = string;
 
@@ -10,46 +11,6 @@ export interface FileTree {
 // ----------------------------------------------------------------------
 // Builder
 // ----------------------------------------------------------------------
-
-function getNonSubPaths(paths: string[]): string[] {
-  const sortedPaths = paths.sort((a, b) => a.length - b.length);
-  const result: string[] = [];
-  for (const currentPath of sortedPaths) {
-    const isSubPath = result.some(
-      (topPath) =>
-        currentPath.startsWith(`${topPath}/`) || currentPath === topPath
-    );
-
-    if (!isSubPath) {
-      result.push(currentPath);
-    }
-  }
-
-  return result;
-}
-
-function getCommonBasePath(paths: string[]): string {
-  if (paths.length === 0) {
-    return "";
-  }
-  if (paths.length === 1) {
-    return paths[0];
-  }
-
-  const splitPaths = paths.map((path) => path.split("/"));
-  const basePath: string[] = [];
-
-  for (let i = 0; i < splitPaths[0].length; i++) {
-    const segment = splitPaths[0][i];
-    if (splitPaths.every((pathParts) => pathParts[i] === segment)) {
-      basePath.push(segment);
-    } else {
-      break;
-    }
-  }
-
-  return basePath.join("/");
-}
 
 function listFilesRecursive(
   dir: string,
@@ -69,16 +30,41 @@ function listFilesRecursive(
   return results;
 }
 
-export function buildFileTree(
+function getBasePath(fileTree: FileTree): {
+  basePath: string;
+  current: FileTree;
+} {
+  let prevBasePath = "";
+  let basePath = "";
+  let prevCurrent: FileTree = fileTree;
+  let current: FileTree = fileTree;
+  while (true) {
+    const keys = Object.keys(current);
+    if (keys.length === 1) {
+      prevBasePath = basePath;
+      basePath = nodePath.join(basePath, keys[0]);
+      prevCurrent = current;
+      current = current[keys[0]] as FileTree;
+    } else {
+      break;
+    }
+  }
+
+  if (typeof current === "string") {
+    return { basePath: prevBasePath, current: prevCurrent };
+  }
+
+  return { basePath, current };
+}
+
+export async function buildFileTree(
   paths: string[],
-  isGitIgnored: (path: string) => boolean
-): {
+  isGitIgnored: (path: string) => boolean,
+  withDependencies: boolean
+): Promise<{
   fileTree: FileTree;
   basePath: string;
-} {
-  const fsPaths = getNonSubPaths(paths);
-  const basePath = getCommonBasePath(fsPaths);
-
+}> {
   const fileTree: FileTree = {};
 
   for (const pPath of paths) {
@@ -86,8 +72,7 @@ export function buildFileTree(
       ? [pPath]
       : listFilesRecursive(pPath, isGitIgnored);
 
-    for (const file of files) {
-      const path = nodePath.relative(basePath, file);
+    for (const path of files) {
       const parts = path.split(nodePath.sep);
       let current: FileTree = fileTree;
 
@@ -95,6 +80,26 @@ export function buildFileTree(
         if (index === parts.length - 1) {
           if (!isGitIgnored(path)) {
             current[part] = path;
+            if (withDependencies) {
+              const resolvedPaths = await resolveAllImportsInFile(
+                path,
+                isGitIgnored
+              );
+              for (const resolvedPath of resolvedPaths) {
+                const parts2 = resolvedPath.split(nodePath.sep);
+                let current2: FileTree = fileTree;
+                for (const [index2, part2] of parts2.entries()) {
+                  if (index2 === parts2.length - 1) {
+                    current2[part2] = resolvedPath;
+                  } else {
+                    if (!current2[part2]) {
+                      current2[part2] = {};
+                    }
+                    current2 = current2[part2] as FileTree;
+                  }
+                }
+              }
+            }
           }
         } else {
           if (!current[part]) {
@@ -106,7 +111,8 @@ export function buildFileTree(
     }
   }
 
-  return { fileTree, basePath };
+  const { basePath, current } = getBasePath(fileTree);
+  return { fileTree: current, basePath };
 }
 
 // ----------------------------------------------------------------------
