@@ -1,182 +1,87 @@
-# Contextualize: Generate LLM Context & More
+# Contextualize
 
-This VSCode extension provides several features to help you understand your codebase and integrate with Large Language Models (LLMs):
-
-1. **Scans directories** to generate a document that includes a file tree, source code, and (optional) TypeScript type information.
-2. **Generates custom prompts** by injecting your code into user-defined templates.
-3. **Applies merge conflict markers** directly to your workspace.
-
----
-
-## Table of Contents
-
-- [Contextualize: Generate LLM Context \& More](#contextualize-generate-llm-context--more)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Generate LLM Context](#generate-llm-context)
-    - [Generate Prompt](#generate-prompt)
-    - [Apply Conflict Markers](#apply-conflict-markers)
-  - [Configuration](#configuration)
-  - [Notes](#notes)
-  - [License](#license)
-
----
-
-## Features
-
-1. **Recursive Directory Traversal**  
-   Recursively scans all files within the selected directory and its subdirectories, displaying a file tree along with file contents.
-
-2. **TypeScript Type Information (Optional)**  
-   For TypeScript files, comments with symbol type information are automatically added to `import` statements.  
-   Example:
-
-   ```ts
-   /*
-    * Default Import: something => SomeType
-    * Named Imports:
-    *   - foo => FooType
-    */
-   import something, { foo } from "some-module";
-   ```
-
-3. **Custom Prompt Generation**  
-   Define your own prompts (questions, instructions, etc.) in VSCode settings. The extension then injects your **entire code** (for a selected directory) into the chosen prompt template.
-
-4. **Apply Merge Conflict Markers**  
-   Paste your conflict/diff code (with markers like `<<<<<<< ORIGINAL` and `>>>>>>> UPDATED`) into a diff document and automatically apply the changes to the corresponding files in your workspace.
+**Contextualize** is a VS Code extension that generates context information for Large Language Models (LLMs) by analyzing selected files or folders. This includes a structured file tree and the source code content, making it ideal for sharing code context with AI tools like ChatGPT. It also supports automatic dependency resolution and TypeScript type annotations for imports.
 
 ---
 
 ## Installation
 
-1. Search for **`Contextualize`** in the Visual Studio Code Extensions panel and install it.  
-   Alternatively, visit [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=baseballyama.contextualize) to download and install it directly.
-2. Restart Visual Studio Code to activate the extension.
+Install the extension from the Visual Studio Marketplace:
+
+- [**Contextualize** on Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=baseballyama.contextualize)
+
+---
+
+## Features
+
+1. **Generate LLM Context:**
+
+- Create a document with a file tree and source code from selected files or folders.
+- The output includes `# File Tree` and `# SourceCode` sections, ready to share with LLMs.
+
+1. **Dependency Resolution (Optional):**
+
+- Use the `Generate LLM Context With Dependencies` command to recursively resolve and include dependency files (e.g., imports or `require` statements).
+- Automatically excludes files and folders ignored by `.gitignore`.
+
+1. **TypeScript Type Information (Optional):**
+
+- When enabled via settings, TypeScript type information is added as comments above import statements in the generated context.
+- Example:
+  ```typescript
+  /*
+   * Type information:
+   *   - importName => SomeType
+   */
+  import { importName } from "./module";
+  ```
 
 ---
 
 ## Usage
 
-### Generate LLM Context
+1. **Select Files or Folders:**
 
-1. In the VSCode Explorer, **right-click the directory** you want to summarize and select **`Generate LLM Context`**.
-2. The extension scans the selected directory recursively and opens a document containing:
-   - A file tree structure.
-   - File contents (TypeScript files include optional type information in comments, if configured).
+- In VS Code, select files or folders from the Explorer view.
+- Multiple selections are supported.
 
-**Example Output**:
+1. **Review the Output:**
 
-```
-#### File Tree
-|- src
-    |- index.ts
-    |- utils
-        |- helper.ts
+- After the command executes, a new document opens with:
+  - `# File Tree`: A tree structure of the selected files.
+  - `# SourceCode`: The content of the files.
 
-//#region src/index.ts
-(file contents)
-//#endregion
+1. **Copy and Share:**
 
-//#region src/utils/helper.ts
-(file contents)
-//#endregion
-```
+- Copy the output and share it with LLMs or use it for documentation.
 
 ---
 
-### Generate Prompt
+## Settings
 
-1. In the VSCode Explorer, **right-click the directory** you want to summarize and select **`Generate Prompt`**.
-2. A **Quick Pick** menu will display all configured prompts (see [Configuration](#configuration) for details on defining prompts).
-3. Select a prompt, and the extension will:
-   - Recursively collect all files in the selected directory.
-   - Insert the code into the chosen prompt template (replacing `{code}`).
-   - Open a new untitled document containing the **generated prompt**.
+You can customize the extension using the following settings:
 
-Use this feature to quickly create context-rich prompts for LLMs or AI tools.
-
----
-
-### Apply Conflict Markers
-
-You can use this extension to **apply merge conflict markers** from a diff directly to your workspace:
-
-1. In the VSCode Explorer, **right-click the directory** where you want to apply conflicts and select **`Apply Conflict Markers`**.
-2. A new diff document will open with a placeholder.  
-   Remove the placeholder and **paste your diff** or conflict markers (e.g., `<<<<<<< ORIGINAL … ======= … >>>>>>> UPDATED`).
-3. When prompted to **Apply Changes**, the extension will parse your diff and replace the conflict lines in the corresponding files.
-
-This feature is particularly useful when applying partial diffs or conflicts received from code reviews or external sources.
-
----
-
-## Configuration
-
-Open your VSCode settings (`File > Preferences > Settings`) and search for `contextualize`. The extension supports the following settings:
-
-- **`contextualize.addTypeScriptTypes`** (boolean)
-
-  - **Default**: `true`
-  - When enabled, the extension attempts to add type information to TypeScript `import` statements.
-  - Requires a valid local installation of TypeScript and a `tsconfig.json` to provide accurate type data.
-
-- **`contextualize.prompts`** (array)
-  - An array of custom prompts you can use with **`Generate Prompt`**.
-  - Each prompt object has the following shape:
-    ```jsonc
-    {
-      "title": "Example Prompt Title",
-      "prompt": "Please analyze the following code:\n{code}\nWhat do you think?"
-    }
+- **`contextualize.addTypeScriptTypes`:**  
+  Enables or disables TypeScript type annotations in the output.
+  - Example:
+    ```typescript
+    /*
+     * Type information:
+     *   - importName => SomeType
+     */
     ```
-  - Within your `prompt` string, **use `{code}`** where you want the collected code to be inserted.
+    Set to `true` to include comments with type information for imports.
 
-**Example Settings** (`settings.json`):
-
-```jsonc
-{
-  "contextualize.addTypeScriptTypes": true,
-  "contextualize.prompts": [
-    {
-      "title": "Refactor Suggestions",
-      "prompt": "Analyze the following code for any refactoring opportunities:\n{code}"
-    },
-    {
-      "title": "Bug Investigation",
-      "prompt": "Please look at this code and list potential bugs:\n{code}"
-    }
-  ]
-}
-```
+To configure, open VS Code settings and search for `contextualize`.
 
 ---
 
 ## Notes
 
-- **Non-TypeScript Files**  
-  Files such as `.js`, `.json`, and `.md` are included as-is, without additional comments or transformations.
-
-- **Large Projects**  
-  For projects with many files or deep directory structures, processing might take time. Ensure your system has sufficient resources.
-
-- **Applying Merge Conflicts**  
-  The conflict parser expects a standard Git-like format. Ensure lines like `<<<<<<< ORIGINAL`, `=======`, `>>>>>>> UPDATED`, and the file name above `<<<<<<< ORIGINAL` are properly formatted for accurate parsing.
-
-- **Local TypeScript**  
-  If `contextualize.addTypeScriptTypes` is `true` but no local TypeScript installation or valid `tsconfig.json` is found, type information will not be added.
+- Files and folders listed in `.gitignore` are automatically excluded.
+- TypeScript type annotations require a valid `tsconfig.json` file and a locally installed TypeScript package.
+- Dependency resolution relies on VS Code's "Go to Definition" functionality and may not work perfectly in some cases.
 
 ---
 
-## License
-
-This extension is released under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
----
-
-We hope this extension enhances your development workflow!  
-Feel free to report issues or contribute via the [GitHub Repository](https://github.com/username/repository).
-
-Happy coding!
+Thank you for using Contextualize! If you encounter any issues or have suggestions, please share your feedback.
