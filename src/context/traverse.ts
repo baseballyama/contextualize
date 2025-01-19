@@ -51,22 +51,28 @@ function getCommonBasePath(paths: string[]): string {
   return basePath.join("/");
 }
 
-function listFilesRecursive(dir: string): string[] {
+function listFilesRecursive(
+  dir: string,
+  isGitIgnored: (path: string) => boolean
+): string[] {
   let results: string[] = [];
   const list = fs.readdirSync(dir);
   for (const file of list) {
     const filePath = nodePath.join(dir, file);
     const stat = fs.statSync(filePath);
     if (stat && stat.isDirectory()) {
-      results = results.concat(listFilesRecursive(filePath));
-    } else {
+      results = results.concat(listFilesRecursive(filePath, isGitIgnored));
+    } else if (!isGitIgnored(filePath)) {
       results.push(filePath);
     }
   }
   return results;
 }
 
-export function buildFileTree(paths: string[]): {
+export function buildFileTree(
+  paths: string[],
+  isGitIgnored: (path: string) => boolean
+): {
   fileTree: FileTree;
   basePath: string;
 } {
@@ -78,7 +84,7 @@ export function buildFileTree(paths: string[]): {
   for (const pPath of paths) {
     const files: string[] = fs.statSync(pPath).isFile()
       ? [pPath]
-      : listFilesRecursive(pPath);
+      : listFilesRecursive(pPath, isGitIgnored);
 
     for (const file of files) {
       const path = nodePath.relative(basePath, file);
@@ -87,7 +93,9 @@ export function buildFileTree(paths: string[]): {
 
       for (const [index, part] of parts.entries()) {
         if (index === parts.length - 1) {
-          current[part] = path;
+          if (!isGitIgnored(path)) {
+            current[part] = path;
+          }
         } else {
           if (!current[part]) {
             current[part] = {};
