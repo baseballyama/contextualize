@@ -1,9 +1,6 @@
 import * as vscode from "vscode";
-import {
-  buildFileTree,
-  renderFileTree,
-  renderFileTreeContents,
-} from "../context/traverse";
+import { renderFileTreeContents } from "../context/traverse";
+import { buildFileTree, renderFileTree } from "../context/file-tree";
 import { findGitignoresForPaths, getIsGitIgnored } from "../context/gitignore";
 
 async function postProcess(content: string) {
