@@ -1,16 +1,6 @@
 import * as vscode from "vscode";
 
-interface Prompt {
-  title: string;
-  prompt: string;
-}
-
-let prompts: Prompt[] = [];
 let addTypeScriptTypes = false;
-
-function getPrompts() {
-  return prompts;
-}
 
 function getAddTypeScriptTypes() {
   return addTypeScriptTypes;
@@ -18,8 +8,6 @@ function getAddTypeScriptTypes() {
 
 function getConfiguration() {
   const config = vscode.workspace.getConfiguration("contextualize");
-  prompts = config.get<Prompt[]>("prompts") ?? [];
-  console.log({ prompts });
   addTypeScriptTypes = config.get<boolean>("addTypeScriptTypes") ?? false;
 }
 
@@ -33,4 +21,4 @@ function onActivate() {
   getConfiguration();
 }
 
-export { onActivate, getPrompts, getAddTypeScriptTypes };
+export { onActivate, getAddTypeScriptTypes };
