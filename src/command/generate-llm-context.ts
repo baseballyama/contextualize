@@ -1,5 +1,14 @@
 import * as vscode from "vscode";
-import { collectFiles } from "../context/folder-traverse";
+import { collectFiles, collectFile } from "../context/folder-traverse";
+import * as fs from "node:fs";
+
+async function postProcess(content: string) {
+  const document = await vscode.workspace.openTextDocument({
+    content,
+    language: "plaintext",
+  });
+  await vscode.window.showTextDocument(document);
+}
 
 export function activate() {
   return vscode.commands.registerCommand(
@@ -10,12 +19,16 @@ export function activate() {
         return;
       }
 
+      const { fsPath } = uri;
+
+      if (fs.statSync(fsPath).isFile()) {
+        const content = collectFile(uri.fsPath);
+        await postProcess(content);
+        return;
+      }
+
       const content = collectFiles(uri.fsPath);
-      const document = await vscode.workspace.openTextDocument({
-        content,
-        language: "plaintext",
-      });
-      await vscode.window.showTextDocument(document);
+      await postProcess(content);
     }
   );
 }

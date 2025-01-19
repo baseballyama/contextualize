@@ -39,7 +39,7 @@
         {
           "submenu": "contextualize.folderMenu",
           "group": "@contextualize",
-          "when": "explorerResourceIsFolder"
+          "when": "explorerResourceIsFolder || resourceFilename"
         }
       ],
       "contextualize.folderMenu": [

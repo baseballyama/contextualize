@@ -54,3 +54,8 @@ export function collectFiles(directoryPath: string): string {
   const fileTexts = allFiles.map(loadFile).join("\n");
   return `#### File Tree\n${fileTree}\n\n${fileTexts}`;
 }
+
+export function collectFile(filePath: string): string {
+  const loadFile = useFileLoader(path.dirname(filePath));
+  return loadFile(filePath);
+}
