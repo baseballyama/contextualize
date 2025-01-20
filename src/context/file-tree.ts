@@ -129,7 +129,7 @@ function renderFileTreeInternal(
   indent: string
 ): string[] {
   const lines: string[] = [];
-  for (const key in tree) {
+  for (const key of Object.keys(tree).sort()) {
     const value = tree[key];
     const isFile = typeof value === "string";
     const line = `${indent}|- ${key}`;

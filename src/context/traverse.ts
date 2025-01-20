@@ -16,7 +16,7 @@ function renderFileTreeContentsInternal(
   basePath: string
 ): string[] {
   const lines: string[] = [];
-  for (const key in fileTree) {
+  for (const key of Object.keys(fileTree).sort()) {
     const value = fileTree[key];
     const isFile = typeof value === "string";
     if (isFile) {
