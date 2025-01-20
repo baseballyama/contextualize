@@ -6,7 +6,7 @@
   "author": "baseballyama",
   "publisher": "baseballyama",
   "icon": "logo.png",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "engines": {
     "vscode": "^1.93.0"
   },
