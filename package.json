@@ -40,11 +40,6 @@
           "submenu": "contextualize.folderMenu",
           "group": "@contextualize",
           "when": "explorerResourceIsFolder || resourceFilename"
-        },
-        {
-          "command": "contextualize.generateLLMContextWithDependencies",
-          "group": "@contextualize",
-          "when": "explorerResourceIsFolder || resourceFilename"
         }
       ],
       "contextualize.folderMenu": [
