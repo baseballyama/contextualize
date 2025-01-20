@@ -53,26 +53,33 @@ export async function resolveAllImportsInFileInternal(
 
   const resolvedPaths: string[] = [];
 
+  const promises: Promise<void>[] = [];
+
   for (const match of matches) {
-    const startIndex = match.index ?? 0;
-    const importMatch = /(import[\s\S]+?["'])(.*)?["']/gm.exec(match[0]);
-    const importPathStartIndex =
-      startIndex + (importMatch?.[1]?.length ?? 0) + 1;
-    const position = document.positionAt(importPathStartIndex);
-    const locations = await vscode.commands.executeCommand<
-      vscode.LocationLink[]
-    >("vscode.executeDefinitionProvider", document.uri, position);
-    if (locations) {
-      for (const location of locations) {
-        const targetPath = location.targetUri.fsPath;
-        if (isGitIgnored(targetPath) || processedPaths.includes(targetPath)) {
-          continue;
+    async function process() {
+      const startIndex = match.index ?? 0;
+      const importMatch = /(import[\s\S]+?["'])(.*)?["']/gm.exec(match[0]);
+      const importPathStartIndex =
+        startIndex + (importMatch?.[1]?.length ?? 0) + 1;
+      const position = document.positionAt(importPathStartIndex);
+      const locations = await vscode.commands.executeCommand<
+        vscode.LocationLink[]
+      >("vscode.executeDefinitionProvider", document.uri, position);
+      if (locations) {
+        for (const location of locations) {
+          const targetPath = location.targetUri.fsPath;
+          if (isGitIgnored(targetPath) || processedPaths.includes(targetPath)) {
+            continue;
+          }
+          processedPaths.push(targetPath);
+          resolvedPaths.push(targetPath);
         }
-        processedPaths.push(targetPath);
-        resolvedPaths.push(targetPath);
       }
     }
+    promises.push(process());
   }
+
+  await Promise.all(promises);
 
   return resolvedPaths;
 }
