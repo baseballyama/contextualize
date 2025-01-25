@@ -67,15 +67,15 @@ function createProgramAndChecker(tsconfigPath: string, ts: TsApi) {
 
 // Transform import declarations by adding type info comments
 function transformImportCommentsInFile(
-  baseDir: string,
   filePath: string,
   ts: TsApi,
   program: Program,
   checker: TypeChecker
 ): string {
+  console.log({filePath});
   const sourceFile = program.getSourceFile(filePath);
   if (!sourceFile) {
-    return fs.readFileSync(path.join(baseDir, filePath), "utf-8");
+    return fs.readFileSync(filePath, "utf-8");
   }
   const transformer = createImportTypeCommentTransformer(ts, checker);
   const result = ts.transform(sourceFile, [transformer]);
@@ -212,23 +212,22 @@ function formatCommentText(info: {
 }
 
 // Main loader function
-export function useTypescriptLoader(baseDir: string) {
-  const ts = tryLoadUserTypescript(baseDir);
+export function useTypescriptLoader() {
+  const ts = tryLoadUserTypescript(".");
   if (!ts) {
     return (someFilePath: string) => {
-      return fs.readFileSync(path.join(baseDir, someFilePath), "utf-8");
+      return fs.readFileSync(someFilePath, "utf-8");
     };
   }
-  const tsconfigPath = findTsConfigPath(baseDir);
+  const tsconfigPath = findTsConfigPath(".");
   if (!tsconfigPath) {
     return (someFilePath: string) => {
-      return fs.readFileSync(path.join(baseDir, someFilePath), "utf-8");
+      return fs.readFileSync(someFilePath, "utf-8");
     };
   }
   const { program, checker } = createProgramAndChecker(tsconfigPath, ts);
   return (someFilePath: string) => {
     return transformImportCommentsInFile(
-      baseDir,
       someFilePath,
       ts,
       program,

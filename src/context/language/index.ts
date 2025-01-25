@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 
 export function useFileLoader(baseDir: string) {
-  const loadTypescript = useTypescriptLoader(baseDir);
+  const loadTypescript = useTypescriptLoader();
   return (filePath: string) => {
     let fileString = "";
     if (filePath.endsWith(".ts")) {
